@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animasi SCS-AIS Danger Alarm Heatmap</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-omnivore/0.3.4/leaflet-omnivore.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --purple-color: #9333ea;
+            --purple-hover: #7e22ce;
+            --indigo-color: #4f46e5;
+            --indigo-hover: #4338ca;
+            --green-color: #22c55e;
+            --green-hover: #16a34a;
+            --yellow-color: #eab308;
+            --yellow-hover: #ca8a04;
+            --red-color: #ef4444;
+            --red-hover: #dc2626;
+            --bg-glass: rgba(255, 255, 255, 0.95);
+            --border-color: #e5e7eb;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --shadow-custom: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f3f4f6;
+            overflow: hidden;
+            color: var(--text-main);
+        }
+
+        #map {
+            height: 100vh;
+            width: 100vw;
+            z-index: 1;
+        }
+
+        .glass-panel {
+            background-color: var(--bg-glass);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-custom);
+            border-radius: 12px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease, opacity 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-purple { background-color: var(--purple-color); color: white; }
+        .btn-purple:hover:not(:disabled) { background-color: var(--purple-hover); }
+
+        .btn-blue { background-color: var(--primary-color); color: white; }
+        .btn-blue:hover:not(:disabled) { background-color: var(--primary-hover); }
+
+        .btn-indigo { background-color: var(--indigo-color); color: white; }
+        .btn-indigo:hover:not(:disabled) { background-color: var(--indigo-hover); }
+
+        .btn-green { background-color: var(--green-color); color: white; }
+        .btn-green:hover:not(:disabled) { background-color: var(--green-hover); }
+
+        .btn-yellow { background-color: var(--yellow-color); color: white; }
+        .btn-yellow:hover:not(:disabled) { background-color: var(--yellow-hover); }
+
+        .btn-red { background-color: var(--red-color); color: white; }
+        .btn-red:hover:not(:disabled) { background-color: var(--red-hover); }
+
+        /* 3D Playback Buttons CSS */
+        .btn-3d {
+            border: none;
+            border-radius: 8px;
+            color: white;
+            padding: 8px 0;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 6px;
+        }
+        
+        .btn-3d svg {
+            width: 20px;
+            height: 20px;
+            filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.3));
+        }
+        .btn-3d-green { background: var(--green-color); box-shadow: 0 4px #15803d; }
+        .btn-3d-green:hover:not(:disabled) { background: var(--green-hover); }
+        .btn-3d-yellow { background: var(--yellow-color); box-shadow: 0 4px #a16207; }
+        .btn-3d-yellow:hover:not(:disabled) { background: var(--yellow-hover); }
+        .btn-3d-red { background: var(--red-color); box-shadow: 0 4px #b91c1c; }
+        .btn-3d-red:hover:not(:disabled) { background: var(--red-hover); }
+        .btn-3d-blue { background: var(--primary-color); box-shadow: 0 4px #1d4ed8; }
+        .btn-3d-blue:hover:not(:disabled) { background: var(--primary-hover); }
+        
+        .btn-3d:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow: 0 0px #000;
+        }
+        .btn-3d:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: translateY(4px);
+            box-shadow: 0 0px transparent;
+        }
+
+        .form-select, .form-input {
+            width: 100%;
+            border: 1px solid #d1d5db;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            background-color: white;
+            font-family: inherit;
+            color: var(--text-main);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-select:focus, .form-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .hidden-file-input {
+            display: none;
+        }
+
+        #showPanelBtn {
+            display: none;
+            margin-bottom: 10px;
+            padding: 10px 14px;
+            color: var(--text-main);
+        }
+        #showPanelBtn:hover {
+            color: var(--primary-color);
+        }
+
+        #mainControlPanel {
+            display: flex;
+            width: 320px;
+            max-height: 90vh;
+            overflow-y: auto;
+            flex-direction: column;
+            gap: 16px;
+            padding: 16px;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+        
+        .panel-header h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text-main);
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
+        }
+        .close-btn:hover {
+            background-color: #f3f4f6;
+            color: var(--red-color);
+        }
+
+        .section-box {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background-color: #f9fafb;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .section-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0;
+        }
+
+        .playback-row {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+        .playback-row button {
+            flex: 1;
+            padding: 8px 4px;
+            font-size: 0.75rem;
+        }
+
+        #statusMessage {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-style: italic;
+            font-weight: 500;
+            margin-top: 4px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 8px;
+            line-height: 1.3;
+        }
+
+        #timelineContainer {
+            display: block;
+            width: 85vw;
+            max-width: 600px;
+            padding: 16px;
+            margin-bottom: 20px;
+            margin-left: 10px;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .time-badge {
+            background-color: #f9fafb;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+
+        .time-current {
+            font-weight: 700;
+            color: #1d4ed8;
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 6px 16px;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+            white-space: nowrap;
+            margin: 0 8px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #d1d5db;
+            border-radius: 2px;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        .legend-box {
+            padding: 12px;
+        }
+        .legend-gradient {
+            width: 128px;
+            height: 14px;
+            border-radius: 4px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+            background: linear-gradient(to right, #007bff 0%, #00ff00 25%, #ffff00 50%, #ff7f00 75%, #ff0000 100%);
+        }
+    </style>
+    
+    <script>
+        (function() {
+            const originalGetContext = HTMLCanvasElement.prototype.getContext;
+            HTMLCanvasElement.prototype.getContext = function(type, attributes) {
+                if (type === '2d') {
+                    attributes = attributes || {};
+                    attributes.willReadFrequently = true;
+                }
+                const ctx = originalGetContext.call(this, type, attributes);
+                if (ctx && type === '2d') {
+                    const originalGetImageData = ctx.getImageData;
+                    ctx.getImageData = function(sx, sy, sw, sh) {
+                        if (sw <= 0 || sh <= 0) {
+                            return new ImageData(1, 1);
+                        }
+                        return originalGetImageData.call(this, sx, sy, sw, sh);
+                    };
+                }
+                return ctx;
+            };
+        })();
+    </script>
+</head>
+<body>
+
+    <button id="showPanelBtn" class="glass-panel btn">
+        <svg xmlns="http://www.w3.org/2000/svg" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.04.64.09.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c-.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+        </svg>
+        <span style="font-size: 0.875rem; font-weight: 700;">Pengaturan</span>
+    </button>
+
+    <div id="mainControlPanel" class="glass-panel">
+        <div class="panel-header">
+            <h1>Control Panel</h1>
+            <button id="hidePanelBtn" class="close-btn" title="Sembunyikan Panel">
+                <svg xmlns="http://www.w3.org/2000/svg" style="width: 20px; height: 20px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <div id="settingsSection">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <input type="file" id="kmlFileInput" accept=".kml" class="hidden-file-input">
+                <label for="kmlFileInput" class="btn btn-purple" style="cursor: pointer;">
+                    <svg xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px;" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                    </svg>
+                    Load KML Overlay
+                </label>
+
+                <input type="file" id="csvFileInput" accept=".csv" class="hidden-file-input">
+                <label for="csvFileInput" class="btn btn-blue" style="cursor: pointer;">
+                    <svg xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px;" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    Load Data Danger Alarm
+                </label>
+            </div>
+            
+            <div class="section-box" style="margin-top: 4px;">
+                <label class="section-label">Filter Data (Otomatis)</label>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 0.65rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Grouping Periode</label>
+                    <select id="periodSelect" class="form-select">
+                        <option value="weekly">Mingguan</option>
+                        <option value="monthly" selected>Bulanan</option>
+                        <option value="quarterly">Kuartal (Quarter)</option>
+                        <option value="yearly">Tahunan</option>
+                    </select>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 0.65rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Mulai Tanggal</label>
+                    <input type="date" id="startDate" class="form-input">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 0.65rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Sampai Tanggal</label>
+                    <input type="date" id="endDate" class="form-input">
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px; margin-bottom: 4px;">
+                <label class="section-label">Eksport</label>
+                <button id="downloadBtn" class="btn btn-purple" disabled title="Download Animasi Heatmap (High Res)">
+                    <svg xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px;" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                    Download Video Animation
+                </button>
+            </div>
+        </div>
+
+        <div id="playbackSection" style="margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border-color);">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label class="section-label">Kecepatan Animasi</label>
+                <select id="speedSelect" class="form-select" disabled>
+                    <option value="0.25">0.25x (Sangat Lambat)</option>
+                    <option value="0.5">0.5x (Lambat)</option>
+                    <option value="1" selected>1x (Normal)</option>
+                    <option value="2">2x (Cepat)</option>
+                    <option value="4">4x (Sangat Cepat)</option>
+                </select>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px; margin-bottom: 4px;">
+                <label class="section-label">Playback Animasi</label>
+                <div class="playback-row">
+                    <button id="playBtn" class="btn-3d btn-3d-green" disabled title="Play">
+                        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+                    </button>
+                    <button id="pauseBtn" class="btn-3d btn-3d-yellow" disabled title="Pause">
+                        <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" fill="currentColor"/></svg>
+                    </button>
+                    <button id="stopBtn" class="btn-3d btn-3d-red" disabled title="Stop">
+                        <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z" fill="currentColor"/></svg>
+                    </button>
+                    <button id="resetBtn" class="btn-3d btn-3d-blue" disabled title="Reset/Replay">
+                        <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" fill="currentColor"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="statusMessage">Silakan unggah file CSV Danger Alarm dan KML Overlay melalui panel ini.</div>
+    </div>
+
+    <div id="timelineContainer" class="glass-panel">
+        <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); text-align: center; margin-bottom: 8px; letter-spacing: 0.025em; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+            SCS-AIS Danger Alarm Heatmap Animation
+        </div>
+        <div class="timeline-header">
+            <span id="startTimeLabel" class="time-badge">Start</span>
+            <span id="currentTimeDisplay" class="time-current">--:--:--</span>
+            <span id="endTimeLabel" class="time-badge">End</span>
+        </div>
+        <input type="range" id="timelineSlider" min="0" max="100" value="0" disabled>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        let map;
+        let heatLayer;
+        let kmlLayer = null;
+        let rawParsedData = []; 
+        let parsedData = []; 
+        let timeFrames = []; 
+        let currentFrameIndex = 0;
+        let animationInterval;
+        let isPlaying = false;
+        
+        let currentAnimationSpeed = 500; 
+        let baseAnimationSpeed = 500;
+        
+        const DEFAULT_HEAT_RADIUS = 25;
+        const DEFAULT_HEAT_BLUR = 15;
+        const DEFAULT_MAX_ZOOM = 10;
+
+        const kmlFileInput = document.getElementById('kmlFileInput');
+        const fileInput = document.getElementById('csvFileInput');
+        const playBtn = document.getElementById('playBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const speedSelect = document.getElementById('speedSelect');
+        const timelineSlider = document.getElementById('timelineSlider');
+        const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+        const startTimeLabel = document.getElementById('startTimeLabel');
+        const endTimeLabel = document.getElementById('endTimeLabel');
+        const statusMessage = document.getElementById('statusMessage');
+        const mainControlPanel = document.getElementById('mainControlPanel');
+        const showPanelBtn = document.getElementById('showPanelBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecordingAnimation = false;
+        let renderLoopId;
+        let destCanvas, destCtx;
+        
+        const periodSelect = document.getElementById('periodSelect');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+
+        function initMap() {
+            map = L.map('map').setView([-2.5489, 118.0149], 5);
+
+            L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '&copy; Google Maps'
+            }).addTo(map);
+
+            heatLayer = L.heatLayer([], {
+                radius: DEFAULT_HEAT_RADIUS,
+                blur: DEFAULT_HEAT_BLUR,
+                maxZoom: DEFAULT_MAX_ZOOM,
+                gradient: {
+                    0.2: '#007bff', 
+                    0.4: '#00ff00', 
+                    0.6: '#ffff00', 
+                    0.8: '#ff7f00', 
+                    1.0: '#ff0000'  
+                }
+            }).addTo(map);
+
+            const legend = L.control({ position: 'bottomright' });
+            legend.onAdd = function (map) {
+                const div = L.DomUtil.create('div', 'glass-panel legend-box');
+                div.innerHTML = 
+                    '<div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">Tingkat Bahaya</div>' +
+                    '<div style="display: flex; align-items: center; gap: 8px;">' +
+                        '<span style="font-size: 0.75rem; color: var(--text-main); font-weight: 600;">Rendah</span>' +
+                        '<div class="legend-gradient"></div>' +
+                        '<span style="font-size: 0.75rem; color: var(--text-main); font-weight: 600;">Tinggi</span>' +
+                    '</div>';
+                L.DomEvent.disableClickPropagation(div);
+                return div;
+            };
+            legend.addTo(map);
+
+            const fullscreenControl = L.control({ position: 'topleft' });
+            fullscreenControl.onAdd = function() {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                const a = L.DomUtil.create('a', '', container);
+                a.href = '#';
+                a.id = 'fs-toggle-btn';
+                a.title = 'Tampilan Penuh (Fullscreen)';
+                a.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px; margin: 7px auto;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>';
+                a.style.display = 'flex';
+                a.style.alignItems = 'center';
+                a.style.justifyContent = 'center';
+                a.style.background = 'white';
+                a.style.width = '34px';
+                a.style.height = '34px';
+                a.style.color = '#333';
+                
+                L.DomEvent.on(a, 'click', function(e) {
+                    L.DomEvent.preventDefault(e);
+                    const mapContainer = document.getElementById('map');
+                    if (!document.fullscreenElement) {
+                        mapContainer.requestFullscreen().catch(function(err) {
+                            console.warn("Fullscreen error", err);
+                        });
+                    } else {
+                        document.exitFullscreen();
+                    }
+                });
+                return container;
+            };
+            fullscreenControl.addTo(map);
+
+            document.addEventListener('fullscreenchange', function() {
+                const fsBtn = document.getElementById('fs-toggle-btn');
+                if (fsBtn) {
+                    if (document.fullscreenElement) {
+                        fsBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px; margin: 7px auto;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 21V15H3M15 21V15H21M9 3v6H3M15 3v6h6" /></svg>';
+                        fsBtn.title = 'Keluar Tampilan Penuh';
+                    } else {
+                        fsBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px; margin: 7px auto;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>';
+                        fsBtn.title = 'Tampilan Penuh (Fullscreen)';
+                    }
+                }
+                setTimeout(function() { map.invalidateSize(); }, 200);
+            });
+
+            const timelineMapControl = L.control({ position: 'bottomleft' });
+            timelineMapControl.onAdd = function() {
+                const container = document.getElementById('timelineContainer');
+                container.style.display = 'block'; 
+                L.DomEvent.disableScrollPropagation(container);
+                L.DomEvent.disableClickPropagation(container);
+                return container;
+            };
+            timelineMapControl.addTo(map);
+
+            const showPanelMapControl = L.control({ position: 'topright' });
+            showPanelMapControl.onAdd = function() {
+                const btn = document.getElementById('showPanelBtn');
+                L.DomEvent.disableScrollPropagation(btn);
+                L.DomEvent.disableClickPropagation(btn);
+                return btn;
+            };
+            showPanelMapControl.addTo(map);
+
+            const mainMapControl = L.control({ position: 'topright' });
+            mainMapControl.onAdd = function() {
+                const container = document.getElementById('mainControlPanel');
+                container.style.display = 'flex';
+                L.DomEvent.disableScrollPropagation(container);
+                L.DomEvent.disableClickPropagation(container);
+                return container;
+            };
+            mainMapControl.addTo(map);
+
+            kmlLayer = L.geoJson(null, {
+                style: function(feature) {
+                    return {
+                        color: '#3b82f6',
+                        weight: 2,
+                        opacity: 0.8,
+                        fillColor: '#3b82f6',
+                        fillOpacity: 0.2
+                    };
+                }
+            }).addTo(map);
+
+            statusMessage.textContent = 'Silakan gunakan tombol "Load KML Overlay" untuk mengunggah KML & "Load Data Danger Alarm" untuk data alarm.';
+            statusMessage.style.color = 'var(--text-muted)';
+            
+            setTimeout(function() {
+                map.invalidateSize();
+            }, 100);
+        }
+
+        kmlFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            statusMessage.textContent = 'Memuat file KML...';
+            statusMessage.style.color = '#3b82f6';
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const kmlText = event.target.result;
+                    kmlLayer.clearLayers();
+                    omnivore.kml.parse(kmlText, null, kmlLayer);
+                    
+                    if (kmlLayer.getLayers().length > 0) {
+                        map.fitBounds(kmlLayer.getBounds());
+                    }
+                    
+                    statusMessage.textContent = 'KML Overlay berhasil dimuat.';
+                    statusMessage.style.color = '#16a34a';
+                    kmlFileInput.value = '';
+                } catch (error) {
+                    console.error("KML Parse Error:", error);
+                    statusMessage.textContent = 'Gagal memuat KML: ' + error.message;
+                    statusMessage.style.color = '#ef4444';
+                }
+            };
+            reader.onerror = function() {
+                statusMessage.textContent = 'Gagal membaca file.';
+                statusMessage.style.color = '#ef4444';
+            };
+            reader.readAsText(file);
+        });
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            statusMessage.textContent = 'Memproses data CSV...';
+            statusMessage.style.color = '#3b82f6';
+
+            Papa.parse(file, {
+                header: true,
+                dynamicTyping: true, 
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.errors.length > 0) console.warn('Parsing errors:', results.errors);
+                    processData(results.data);
+                },
+                error: function(error) {
+                    statusMessage.textContent = 'Error parsing file: ' + error.message;
+                    statusMessage.style.color = '#ef4444';
+                }
+            });
+        });
+
+        function processData(data) {
+            if (!data || data.length === 0) {
+                statusMessage.textContent = 'Tidak ada data ditemukan dalam file.';
+                statusMessage.style.color = '#ef4444';
+                return;
+            }
+
+            const headers = Object.keys(data[0]);
+            const latCol = headers.find(function(h) { return h.toLowerCase().indexOf('lat') !== -1; });
+            const lonCol = headers.find(function(h) { return h.toLowerCase().indexOf('lon') !== -1 || h.toLowerCase().indexOf('lng') !== -1; });
+            const intCol = headers.find(function(h) { return h.toLowerCase().indexOf('intens') !== -1 || h.toLowerCase().indexOf('val') !== -1 || h.toLowerCase().indexOf('weight') !== -1; });
+            const timeCol = headers.find(function(h) { return h.toLowerCase().indexOf('time') !== -1 || h.toLowerCase().indexOf('date') !== -1; });
+
+            if (!latCol || !lonCol) {
+                statusMessage.textContent = 'Kolom Latitude atau Longitude tidak ditemukan pada CSV.';
+                statusMessage.style.color = '#ef4444';
+                return;
+            }
+
+            parsedData = [];
+            rawParsedData = [];
+            let minLat = 90, maxLat = -90, minLon = 180, maxLon = -180;
+            let minDate = null, maxDate = null;
+
+            data.forEach(function(row) {
+                const lat = parseFloat(row[latCol]);
+                const lon = parseFloat(row[lonCol]);
+                
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    let intensity = intCol && row[intCol] !== undefined ? parseFloat(row[intCol]) : 1.0;
+                    if(isNaN(intensity)) intensity = 1.0;
+                    
+                    let timestamp = timeCol && row[timeCol] ? row[timeCol] : null;
+                    let parsedDate = null;
+                    
+                    if (timestamp) {
+                        parsedDate = new Date(timestamp);
+                        if (!isNaN(parsedDate.getTime())) {
+                            if (!minDate || parsedDate < minDate) minDate = parsedDate;
+                            if (!maxDate || parsedDate > maxDate) maxDate = parsedDate;
+                        } else {
+                            parsedDate = null; 
+                        }
+                    }
+
+                    rawParsedData.push({ lat: lat, lon: lon, intensity: intensity, timestamp: timestamp, parsedDate: parsedDate });
+
+                    minLat = Math.min(minLat, lat);
+                    maxLat = Math.max(maxLat, lat);
+                    minLon = Math.min(minLon, lon);
+                    maxLon = Math.max(maxLon, lon);
+                }
+            });
+
+            if (rawParsedData.length === 0) {
+                statusMessage.textContent = 'Data koordinat tidak valid.';
+                statusMessage.style.color = '#ef4444';
+                return;
+            }
+            
+            if (maxDate) {
+                endDateInput.value = maxDate.toISOString().split('T')[0];
+                
+                // Set start date to 1 January of the current year (tahun berjalan)
+                const currentYear = new Date().getFullYear();
+                startDateInput.value = `${currentYear}-01-01`;
+                
+            } else if (minDate) {
+                // Set start date to 1 January of the current year (tahun berjalan)
+                const currentYear = new Date().getFullYear();
+                startDateInput.value = `${currentYear}-01-01`;
+            }
+
+            map.fitBounds([[minLat, minLon], [maxLat, maxLon]]);
+            applyFilters();
+
+            statusMessage.textContent = 'Berhasil memuat ' + rawParsedData.length + ' titik lokasi. Siap diputar.';
+            statusMessage.style.color = '#16a34a';
+            
+            playBtn.disabled = false;
+            stopBtn.disabled = false;
+            resetBtn.disabled = false;
+            timelineSlider.disabled = false;
+            speedSelect.disabled = false;
+            downloadBtn.disabled = false;
+        }
+
+        function applyFilters() {
+            if (rawParsedData.length === 0) return;
+
+            pauseAnimation(); 
+            
+            const startStr = startDateInput.value;
+            const endStr = endDateInput.value;
+            const periodType = periodSelect.value;
+            
+            const startD = startStr ? new Date(startStr) : null;
+            let endD = endStr ? new Date(endStr) : null;
+            if (endD) endD.setHours(23, 59, 59, 999);
+            
+            parsedData = rawParsedData.filter(function(d) {
+                if (!d.parsedDate) return true; 
+                if (startD && d.parsedDate < startD) return false;
+                if (endD && d.parsedDate > endD) return false;
+                return true;
+            });
+            
+            statusMessage.textContent = 'Data difilter secara otomatis menjadi ' + parsedData.length + ' titik.';
+            statusMessage.style.color = '#3b82f6';
+            prepareTimeFrames(periodType);
+            updateMapToFrame(0);
+        }
+
+        function prepareTimeFrames(periodType) {
+            if (!periodType) periodType = 'monthly';
+            timeFrames = [];
+            const hasTimestamps = parsedData.length > 0 && parsedData.some(function(d) { return d.parsedDate != null; });
+
+            if (hasTimestamps) {
+                parsedData.forEach(function(point) {
+                    if (point.parsedDate) {
+                        const dateObj = point.parsedDate;
+                        const year = dateObj.getFullYear();
+                        const month = dateObj.getMonth();
+
+                        if (periodType === 'weekly') {
+                            const day = dateObj.getDay();
+                            const diff = dateObj.getDate() - day + (day === 0 ? -6 : 1);
+                            const startOfWeek = new Date(dateObj);
+                            startOfWeek.setDate(diff);
+                            
+                            const mStr = String(startOfWeek.getMonth() + 1).padStart(2, '0');
+                            const dStr = String(startOfWeek.getDate()).padStart(2, '0');
+                            
+                            point.timeKey = startOfWeek.getFullYear() + '-' + mStr + '-' + dStr;
+                            point.displayLabel = 'Pekan: ' + startOfWeek.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                        } 
+                        else if (periodType === 'quarterly') {
+                            const quarter = Math.floor(month / 3) + 1;
+                            point.timeKey = year + '-Q' + quarter;
+                            point.displayLabel = 'Kuartal ' + quarter + ' ' + year;
+                        } 
+                        else if (periodType === 'yearly') {
+                            point.timeKey = String(year);
+                            point.displayLabel = 'Tahun ' + year;
+                        } 
+                        else {
+                            const mStr = String(month + 1).padStart(2, '0');
+                            point.timeKey = year + '-' + mStr;
+                            point.displayLabel = dateObj.toLocaleDateString('id-ID', { year: 'numeric', month: 'long' }); 
+                        }
+                    } else {
+                        point.timeKey = 'Unknown';
+                        point.displayLabel = 'Tidak Diketahui Waktunya';
+                    }
+                });
+
+                parsedData.sort(function(a, b) { return a.timeKey.localeCompare(b.timeKey); });
+
+                let currentFrameData = [];
+                let currentTimeKey = parsedData[0].timeKey;
+                let currentDisplayLabel = parsedData[0].displayLabel;
+
+                parsedData.forEach(function(point) {
+                    if (point.timeKey !== currentTimeKey) {
+                        timeFrames.push({ label: currentDisplayLabel, data: currentFrameData });
+                        currentFrameData = [];
+                        currentTimeKey = point.timeKey;
+                        currentDisplayLabel = point.displayLabel;
+                    }
+                    currentFrameData.push([point.lat, point.lon, point.intensity]);
+                });
+                
+                if (currentFrameData.length > 0) {
+                    timeFrames.push({ label: currentDisplayLabel, data: currentFrameData });
+                }
+            }
+
+            currentFrameIndex = 0;
+            
+            if (timeFrames.length > 0) {
+                timelineSlider.max = timeFrames.length - 1;
+                startTimeLabel.textContent = timeFrames[0].label;
+                endTimeLabel.textContent = timeFrames[timeFrames.length - 1].label;
+            } else {
+                statusMessage.textContent = 'Tidak ada data untuk periode yang dipilih.';
+                statusMessage.style.color = '#ef4444';
+                heatLayer.setLatLngs([]);
+                currentTimeDisplay.textContent = '--:--:--';
+            }
+        }
+
+        function updateMapToFrame(index) {
+            if (!timeFrames || timeFrames.length === 0) return;
+            
+            if (index < 0) index = 0;
+            if (index >= timeFrames.length) index = timeFrames.length - 1;
+            
+            currentFrameIndex = index;
+            const frame = timeFrames[index];
+            
+            currentTimeDisplay.textContent = frame.label;
+            timelineSlider.value = index;
+            
+            heatLayer.setLatLngs(frame.data);
+        }
+
+        function playAnimation() {
+            if (!timeFrames || timeFrames.length === 0) return;
+            
+            isPlaying = true;
+            playBtn.disabled = true;
+            pauseBtn.disabled = false;
+
+            if (isRecordingAnimation) {
+                mainControlPanel.style.display = 'none';
+            } else {
+                document.getElementById('settingsSection').style.display = 'none';
+            }
+            showPanelBtn.style.display = 'none';
+
+            if (currentFrameIndex >= timeFrames.length - 1) {
+                currentFrameIndex = 0;
+                updateMapToFrame(0);
+            }
+
+            clearInterval(animationInterval);
+            
+            animationInterval = setInterval(function() {
+                if (currentFrameIndex >= timeFrames.length - 1) {
+                    // Akhir frame tercapai, hentikan loop
+                    clearInterval(animationInterval);
+                    
+                    if (isRecordingAnimation) {
+                        // Tahan layar selama 3 detik sebelum video rekaman dihentikan (Agar hasil akhir terlihat jelas)
+                        setTimeout(() => {
+                            pauseAnimation();
+                        }, 3000);
+                    } else {
+                        pauseAnimation(); 
+                    }
+                } else {
+                    // Pindah ke frame berikutnya
+                    currentFrameIndex++;
+                    updateMapToFrame(currentFrameIndex);
+                }
+            }, currentAnimationSpeed);
+        }
+
+        function pauseAnimation() {
+            isPlaying = false;
+            playBtn.disabled = false;
+            pauseBtn.disabled = true;
+            clearInterval(animationInterval);
+
+            if (isRecordingAnimation) {
+                stopRecording();
+            } else {
+                // Menampilkan kembali menu saat di-pause atau stop normal
+                mainControlPanel.style.display = 'flex';
+                document.getElementById('settingsSection').style.display = 'block';
+                showPanelBtn.style.display = 'none';
+            }
+        }
+
+        function resetAnimation() {
+            pauseAnimation();
+            currentFrameIndex = 0;
+            updateMapToFrame(0);
+        }
+
+        function stopAnimation() {
+            pauseAnimation();
+            currentFrameIndex = 0;
+            updateMapToFrame(0);
+        }
+
+        periodSelect.addEventListener('change', applyFilters);
+        startDateInput.addEventListener('change', applyFilters);
+        endDateInput.addEventListener('change', applyFilters);
+
+        playBtn.addEventListener('click', playAnimation);
+        pauseBtn.addEventListener('click', pauseAnimation);
+        stopBtn.addEventListener('click', stopAnimation);
+        resetBtn.addEventListener('click', resetAnimation);
+
+        speedSelect.addEventListener('change', function(e) {
+            const multiplier = parseFloat(e.target.value);
+            currentAnimationSpeed = baseAnimationSpeed / multiplier;
+            if (isPlaying) {
+                pauseAnimation();
+                playAnimation(); 
+            }
+        });
+
+        timelineSlider.addEventListener('input', function(e) {
+            updateMapToFrame(parseInt(e.target.value));
+        });
+
+        timelineSlider.addEventListener('mousedown', function() {
+            if (isPlaying) clearInterval(animationInterval); 
+        });
+
+        timelineSlider.addEventListener('mouseup', function() {
+            if (isPlaying) playAnimation(); 
+        });
+
+        document.getElementById('hidePanelBtn').addEventListener('click', function() {
+            mainControlPanel.style.display = 'none';
+            showPanelBtn.style.display = 'flex';
+        });
+
+        document.getElementById('showPanelBtn').addEventListener('click', function() {
+            mainControlPanel.style.display = 'flex';
+            showPanelBtn.style.display = 'none';
+        });
+
+        async function startRecording() {
+            try {
+                // Meminta browser untuk merekam tab aktif
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    preferCurrentTab: true, 
+                    video: { 
+                        displaySurface: "browser", 
+                        width: { ideal: 3840, max: 3840 },
+                        height: { ideal: 2160, max: 2160 },
+                        frameRate: { ideal: 60 }
+                    },
+                    audio: false
+                });
+
+                isRecordingAnimation = true;
+                recordedChunks = [];
+                
+                let mimeType = '';
+                let fileExtension = '.webm';
+                
+                if (MediaRecorder.isTypeSupported('video/mp4; codecs="avc1.4d002a"')) {
+                    mimeType = 'video/mp4; codecs="avc1.4d002a"';
+                    fileExtension = '.mp4';
+                } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+                    mimeType = 'video/mp4';
+                    fileExtension = '.mp4';
+                } else if (MediaRecorder.isTypeSupported('video/webm; codecs=vp9')) {
+                    mimeType = 'video/webm; codecs=vp9';
+                } else {
+                    mimeType = 'video/webm';
+                }
+
+                // Bitrate tinggi untuk 4K
+                mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 16000000 }); 
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: mimeType });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `SCS-AIS_Heatmap_Animation${fileExtension}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    statusMessage.textContent = 'Video animasi berhasil diunduh.';
+                    statusMessage.style.color = '#16a34a';
+                    downloadBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg> Download Video (MP4/4K)';
+                    downloadBtn.disabled = false;
+
+                    stream.getTracks().forEach(track => track.stop());
+
+                    isRecordingAnimation = false;
+                    mainControlPanel.style.display = 'flex';
+                    document.getElementById('settingsSection').style.display = 'block';
+                    document.getElementById('timelineContainer').style.display = 'block';
+                    
+                    const leafletControls = document.querySelector('.leaflet-control-container');
+                    if (leafletControls) leafletControls.style.display = '';
+                };
+                
+                downloadBtn.innerHTML = 'Menyiapkan Rekaman...';
+                downloadBtn.disabled = true;
+                statusMessage.textContent = 'Merekam animasi keseluruhan... JANGAN PINDAH TAB!';
+                statusMessage.style.color = '#eab308';
+
+                // Menyembunyikan seluruh elemen UI agar hasil rekaman layar bersih (Clean Canvas)
+                mainControlPanel.style.display = 'none';
+                showPanelBtn.style.display = 'none';
+                document.getElementById('timelineContainer').style.display = 'none';
+                
+                const leafletControls = document.querySelector('.leaflet-control-container');
+                if (leafletControls) leafletControls.style.display = 'none';
+
+                // Reset ke frame awal
+                currentFrameIndex = 0;
+                updateMapToFrame(0);
+                
+                // BUAT OVERLAY COUNTDOWN MENCEGAH BUG VISUAL
+                const countdownDiv = document.createElement('div');
+                countdownDiv.style.position = 'fixed';
+                countdownDiv.style.top = '0';
+                countdownDiv.style.left = '0';
+                countdownDiv.style.width = '100vw';
+                countdownDiv.style.height = '100vh';
+                countdownDiv.style.backgroundColor = 'rgba(15, 23, 42, 0.9)'; // Warna gelap profesional
+                countdownDiv.style.color = 'white';
+                countdownDiv.style.display = 'flex';
+                countdownDiv.style.flexDirection = 'column';
+                countdownDiv.style.alignItems = 'center';
+                countdownDiv.style.justifyContent = 'center';
+                countdownDiv.style.zIndex = '9999';
+                countdownDiv.style.transition = 'opacity 0.5s ease';
+                
+                countdownDiv.innerHTML = `
+                    <div style="font-size: 6rem; font-weight: 800; color: #3b82f6; text-shadow: 0 4px 10px rgba(0,0,0,0.5);" id="cdNumber">3</div>
+                    <div style="font-size: 1.5rem; margin-top: 24px; font-weight: 600; letter-spacing: 0.05em;">Menyiapkan Perekaman...</div>
+                    <div style="font-size: 1rem; color: #fbbf24; margin-top: 16px; background: rgba(251, 191, 36, 0.1); padding: 12px 24px; border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.2);">
+                        ⚠️ <b>TIPS:</b> Jika muncul pop-up peringatan "Berbagi Layar" di bagian bawah browser, segera klik <b>"Sembunyikan" / "Hide"</b> sekarang agar tidak ikut terekam.
+                    </div>
+                `;
+                document.body.appendChild(countdownDiv);
+
+                let count = 3;
+                const cdInterval = setInterval(() => {
+                    count--;
+                    if(count > 0) {
+                        document.getElementById('cdNumber').textContent = count;
+                    } else {
+                        clearInterval(cdInterval);
+                        countdownDiv.style.opacity = '0'; // Animasi fade out
+                        
+                        setTimeout(() => {
+                            if(document.body.contains(countdownDiv)) {
+                                document.body.removeChild(countdownDiv);
+                            }
+                            // Mulai perekaman secara utuh tanpa pemotongan timeslice (agar mulus)
+                            mediaRecorder.start();
+                            
+                            // Mulai animasi
+                            if (isRecordingAnimation) playAnimation();
+                        }, 600); // Tunggu sampai layar benar-benar terbuka
+                    }
+                }, 1000);
+
+            } catch (err) {
+                console.error("Error accessing display media:", err);
+                statusMessage.textContent = 'Perekaman dibatalkan oleh pengguna atau tidak didukung.';
+                statusMessage.style.color = '#ef4444';
+                downloadBtn.disabled = false;
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            isRecordingAnimation = false;
+        }
+        
+        downloadBtn.addEventListener('click', startRecording);
+
+        window.onload = initMap;
+    </script>
+</body>
+</html>
