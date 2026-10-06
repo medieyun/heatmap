@@ -103,7 +103,6 @@
         .btn-red { background-color: var(--red-color); color: white; }
         .btn-red:hover:not(:disabled) { background-color: var(--red-hover); }
 
-        /* 3D Playback Buttons CSS */
         .btn-3d {
             border: none;
             border-radius: 8px;
@@ -364,7 +363,7 @@
 
     <button id="showPanelBtn" class="glass-panel btn">
         <svg xmlns="http://www.w3.org/2000/svg" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.04.64.09.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c-.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.04.64.09.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c-.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6-3.6z"/>
         </svg>
         <span style="font-size: 0.875rem; font-weight: 700;">Pengaturan</span>
     </button>
@@ -384,7 +383,7 @@
                 <input type="file" id="kmlFileInput" accept=".kml" class="hidden-file-input">
                 <label for="kmlFileInput" class="btn btn-purple" style="cursor: pointer;">
                     <svg xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px;" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
                     </svg>
                     Load KML Overlay
                 </label>
@@ -403,6 +402,7 @@
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                     <label style="font-size: 0.65rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Grouping Periode</label>
                     <select id="periodSelect" class="form-select">
+                        <option value="daily">Harian</option>
                         <option value="weekly">Mingguan</option>
                         <option value="monthly" selected>Bulanan</option>
                         <option value="quarterly">Kuartal (Quarter)</option>
@@ -596,7 +596,7 @@
                         fsBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px; margin: 7px auto;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 21V15H3M15 21V15H21M9 3v6H3M15 3v6h6" /></svg>';
                         fsBtn.title = 'Keluar Tampilan Penuh';
                     } else {
-                        fsBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px; margin: 7px auto;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>';
+                        fsBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px; margin: 7px auto;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>';
                         fsBtn.title = 'Tampilan Penuh (Fullscreen)';
                     }
                 }
@@ -771,12 +771,10 @@
             if (maxDate) {
                 endDateInput.value = maxDate.toISOString().split('T')[0];
                 
-                // Set start date to 1 January of the current year (tahun berjalan)
                 const currentYear = new Date().getFullYear();
                 startDateInput.value = `${currentYear}-01-01`;
                 
             } else if (minDate) {
-                // Set start date to 1 January of the current year (tahun berjalan)
                 const currentYear = new Date().getFullYear();
                 startDateInput.value = `${currentYear}-01-01`;
             }
@@ -833,7 +831,13 @@
                         const year = dateObj.getFullYear();
                         const month = dateObj.getMonth();
 
-                        if (periodType === 'weekly') {
+                        if (periodType === 'daily') {
+                            const mStr = String(month + 1).padStart(2, '0');
+                            const dStr = String(dateObj.getDate()).padStart(2, '0');
+                            point.timeKey = year + '-' + mStr + '-' + dStr;
+                            point.displayLabel = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                        }
+                        else if (periodType === 'weekly') {
                             const day = dateObj.getDay();
                             const diff = dateObj.getDate() - day + (day === 0 ? -6 : 1);
                             const startOfWeek = new Date(dateObj);
@@ -938,11 +942,9 @@
             
             animationInterval = setInterval(function() {
                 if (currentFrameIndex >= timeFrames.length - 1) {
-                    // Akhir frame tercapai, hentikan loop
                     clearInterval(animationInterval);
                     
                     if (isRecordingAnimation) {
-                        // Tahan layar selama 3 detik sebelum video rekaman dihentikan (Agar hasil akhir terlihat jelas)
                         setTimeout(() => {
                             pauseAnimation();
                         }, 3000);
@@ -950,7 +952,6 @@
                         pauseAnimation(); 
                     }
                 } else {
-                    // Pindah ke frame berikutnya
                     currentFrameIndex++;
                     updateMapToFrame(currentFrameIndex);
                 }
@@ -966,7 +967,6 @@
             if (isRecordingAnimation) {
                 stopRecording();
             } else {
-                // Menampilkan kembali menu saat di-pause atau stop normal
                 mainControlPanel.style.display = 'flex';
                 document.getElementById('settingsSection').style.display = 'block';
                 showPanelBtn.style.display = 'none';
@@ -1027,7 +1027,6 @@
 
         async function startRecording() {
             try {
-                // Meminta browser untuk merekam tab aktif
                 const stream = await navigator.mediaDevices.getDisplayMedia({
                     preferCurrentTab: true, 
                     video: { 
@@ -1057,7 +1056,6 @@
                     mimeType = 'video/webm';
                 }
 
-                // Bitrate tinggi untuk 4K
                 mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 16000000 }); 
 
                 mediaRecorder.ondataavailable = (e) => {
@@ -1096,7 +1094,6 @@
                 statusMessage.textContent = 'Merekam animasi keseluruhan... JANGAN PINDAH TAB!';
                 statusMessage.style.color = '#eab308';
 
-                // Menyembunyikan seluruh elemen UI agar hasil rekaman layar bersih (Clean Canvas)
                 mainControlPanel.style.display = 'none';
                 showPanelBtn.style.display = 'none';
                 document.getElementById('timelineContainer').style.display = 'none';
@@ -1104,18 +1101,16 @@
                 const leafletControls = document.querySelector('.leaflet-control-container');
                 if (leafletControls) leafletControls.style.display = 'none';
 
-                // Reset ke frame awal
                 currentFrameIndex = 0;
                 updateMapToFrame(0);
                 
-                // BUAT OVERLAY COUNTDOWN MENCEGAH BUG VISUAL
                 const countdownDiv = document.createElement('div');
                 countdownDiv.style.position = 'fixed';
                 countdownDiv.style.top = '0';
                 countdownDiv.style.left = '0';
                 countdownDiv.style.width = '100vw';
                 countdownDiv.style.height = '100vh';
-                countdownDiv.style.backgroundColor = 'rgba(15, 23, 42, 0.9)'; // Warna gelap profesional
+                countdownDiv.style.backgroundColor = 'rgba(15, 23, 42, 0.9)'; 
                 countdownDiv.style.color = 'white';
                 countdownDiv.style.display = 'flex';
                 countdownDiv.style.flexDirection = 'column';
@@ -1140,18 +1135,15 @@
                         document.getElementById('cdNumber').textContent = count;
                     } else {
                         clearInterval(cdInterval);
-                        countdownDiv.style.opacity = '0'; // Animasi fade out
+                        countdownDiv.style.opacity = '0'; 
                         
                         setTimeout(() => {
                             if(document.body.contains(countdownDiv)) {
                                 document.body.removeChild(countdownDiv);
                             }
-                            // Mulai perekaman secara utuh tanpa pemotongan timeslice (agar mulus)
                             mediaRecorder.start();
-                            
-                            // Mulai animasi
                             if (isRecordingAnimation) playAnimation();
-                        }, 600); // Tunggu sampai layar benar-benar terbuka
+                        }, 600); 
                     }
                 }, 1000);
 
